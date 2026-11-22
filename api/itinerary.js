@@ -7,10 +7,10 @@
 const KEY = "osaka-2026:itinerary";
 const FIELDS = [
   "theme",
-  "breakfast", "breakfast_alt",
-  "lunch", "lunch_alt",
-  "dinner", "dinner_alt",
-  "place1", "place2", "free",
+  "breakfast", "breakfast_alt", "breakfast_cost",
+  "lunch", "lunch_alt", "lunch_cost",
+  "dinner", "dinner_alt", "dinner_cost",
+  "place1", "place2", "free", "place_cost",
   "reserve", "notes", "memo",
   "done", "cost",
 ];
