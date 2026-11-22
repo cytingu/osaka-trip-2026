@@ -148,11 +148,19 @@
   @keyframes flash { from { background: #fff4c7; } to { background: inherit; } }
 
   .cost-row {
-    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
     font-size: 12px; color: var(--muted); font-weight: 600;
   }
   .cost-row input { width: 130px; text-align: right; font-size: 13px; padding: 6px 8px; }
+  .cost-row .day-total { margin-left: auto; font-size: 13px; color: var(--ink); font-weight: 700; }
+  .cost-in { position: relative; margin-top: 6px; }
+  .cost-in::before { content: "¥"; position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--muted); pointer-events: none; }
+  .cost-in input[type="number"] { padding: 6px 8px 6px 22px; font-size: 13px; text-align: right; background: #fff; }
+  .place-cost { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .place-cost .cost-in { margin-top: 0; width: 150px; }
+  .breakdown { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 13px; opacity: .85; }
+  .breakdown b { font-weight: 700; }
 
   /* ---------- Total ---------- */
   .total {
@@ -208,8 +216,8 @@
   <div class="grid" id="grid"></div>
   <section class="total" aria-live="polite">
     <div>
-      <div class="label">💴 최종 경비 (전체 합계)</div>
-      <div class="per" id="cost-count"></div>
+      <div class="label">💴 최종 금액 (전체 합계)</div>
+      <div class="breakdown" id="breakdown"></div>
     </div>
     <div class="amount" id="total">¥0</div>
   </section>
@@ -249,7 +257,7 @@
     "d4:lunch": "고베규 특선 코스", "d4:lunch_alt": "차이나타운에서 군것질",
     "d4:reserve": "11:30",
     "d4:memo": "고베 코스 1.7만 엔",
-    "d4:cost": "17000",
+    "d4:lunch_cost": "17000",
 
     "d8:lunch": "Moeyo Mensuke",
   };
@@ -280,6 +288,10 @@
     return `<input type="text" data-key="${key}" placeholder="${esc(placeholder)}" ${extra}>`;
   }
 
+  function costInput(key) {
+    return `<div class="cost-in"><input type="number" inputmode="numeric" min="0" step="100" data-key="${key}" placeholder="금액"></div>`;
+  }
+
   function renderCard(i) {
     const d = dayInfo(i), k = (f) => `d${d.n}:${f}`;
     return `
@@ -301,6 +313,7 @@
             ${input(k(f), "식당, 메뉴")}
             <div class="alt-label">상시 · 대안</div>
             ${input(k(f + "_alt"), "예약 없이 갈 곳")}
+            ${costInput(k(f + "_cost"))}
           </div>`).join("")}
       </div>
 
@@ -310,6 +323,7 @@
         <label class="f"><span>📍 관광지 2</span>${input(k("place2"), "근처에 가볍게 들를 곳")}</label>
       </div>
       <label class="f" style="margin-top:8px"><span>🚶 자유일정</span>${input(k("free"), "돌아다니면서 할 것")}</label>
+      <div class="place-cost"><span>가볼 곳 금액 (입장료·체험·쇼핑)</span>${costInput(k("place_cost"))}</div>
 
       <div class="section-title">예약 · 참고</div>
       <div class="row2">
@@ -321,8 +335,9 @@
       </label>
 
       <div class="cost-row">
-        <span>💴 비용 (엔)</span>
+        <span>🚃 기타 (교통 등)</span>
         <input type="number" inputmode="numeric" min="0" step="100" data-key="${k("cost")}" placeholder="0">
+        <span class="day-total">이날 합계 <span id="day-total-${d.n}">¥0</span></span>
       </div>
     </article>`;
   }
@@ -353,17 +368,29 @@
     refreshDerived();
   }
 
+  const COST_CATS = [
+    ["breakfast_cost", "아침"], ["lunch_cost", "점심"], ["dinner_cost", "저녁"],
+    ["place_cost", "가볼 곳"], ["cost", "기타"],
+  ];
+  const yen = (v) => "¥" + v.toLocaleString("ja-JP");
+
   function refreshDerived() {
-    let total = 0, count = 0;
+    let total = 0;
+    const byCat = Object.fromEntries(COST_CATS.map(([f]) => [f, 0]));
     for (let n = 1; n <= DAYS; n++) {
-      const c = parseFloat(currentValue(`d${n}:cost`));
-      if (!isNaN(c) && c > 0) { total += c; count++; }
+      let day = 0;
+      for (const [f] of COST_CATS) {
+        const c = parseFloat(currentValue(`d${n}:${f}`));
+        if (!isNaN(c) && c > 0) { day += c; byCat[f] += c; }
+      }
+      total += day;
+      $(`#day-total-${n}`).textContent = yen(day);
       const done = currentValue(`d${n}:done`) === "1";
       $(`#day${n}`).classList.toggle("done", done);
       $(`[data-jump="${n}"]`).classList.toggle("is-done", done);
     }
-    $("#total").textContent = "¥" + total.toLocaleString("ja-JP");
-    $("#cost-count").textContent = count ? `${count}일에 비용 입력됨` : "각 날짜 카드 맨 아래 비용 칸에 적으면 합계가 나와요";
+    $("#total").textContent = yen(total);
+    $("#breakdown").innerHTML = COST_CATS.map(([f, label]) => `<span>${label} <b>${yen(byCat[f])}</b></span>`).join("");
   }
 
   function currentValue(key) {
@@ -459,10 +486,12 @@
   $("#csv").addEventListener("click", () => {
     const cols = [
       ["일차", null], ["날짜", null], ["요일", null], ["테마", "theme"],
-      ["아침", "breakfast"], ["아침 상시", "breakfast_alt"], ["점심", "lunch"], ["점심 상시", "lunch_alt"],
-      ["저녁", "dinner"], ["저녁 상시", "dinner_alt"], ["관광지 1", "place1"], ["관광지 2", "place2"],
-      ["자유일정", "free"], ["예약 시간", "reserve"], ["참고사항", "notes"], ["메모", "memo"],
-      ["완료", "done"], ["비용(엔)", "cost"],
+      ["아침", "breakfast"], ["아침 상시", "breakfast_alt"], ["아침 금액", "breakfast_cost"],
+      ["점심", "lunch"], ["점심 상시", "lunch_alt"], ["점심 금액", "lunch_cost"],
+      ["저녁", "dinner"], ["저녁 상시", "dinner_alt"], ["저녁 금액", "dinner_cost"],
+      ["관광지 1", "place1"], ["관광지 2", "place2"], ["자유일정", "free"], ["가볼 곳 금액", "place_cost"],
+      ["예약 시간", "reserve"], ["참고사항", "notes"], ["메모", "memo"],
+      ["완료", "done"], ["기타 금액", "cost"],
     ];
     const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
     const rows = [cols.map((c) => q(c[0])).join(",")];
