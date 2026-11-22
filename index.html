@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>오사카 여행 일정표 · 2026.12.1–12.9</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --paper: #ffffff;
+    --ink: #1f1d1a;
+    --muted: #7a746b;
+    --line: #e7e1d7;
+    --field: #fbfaf7;
+    --accent: #c8402f;      /* 도리이 주홍 */
+    --accent-soft: #fbe9e5;
+    --indigo: #283a5b;
+    --ok: #2f7d4f;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header ---------- */
+  header.hero {
+    background: var(--indigo);
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  header.hero::after {
+    content: "";
+    position: absolute; right: -60px; top: -60px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: var(--accent);
+    opacity: .9;
+  }
+  .hero-inner {
+    position: relative; z-index: 1;
+    max-width: 1180px; margin: 0 auto;
+    padding: 40px 24px 34px;
+  }
+  .hero .eyebrow { font-size: 13px; letter-spacing: .18em; opacity: .75; font-weight: 600; }
+  .hero h1 { margin: 6px 0 8px; font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -.02em; }
+  .hero p { margin: 0; opacity: .85; font-size: 15px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(246, 243, 238, .92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .toolbar-inner {
+    max-width: 1180px; margin: 0 auto;
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted); font-weight: 500;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #bbb; }
+  .status[data-state="saved"] .dot { background: var(--ok); }
+  .status[data-state="saving"] .dot { background: #e0a100; }
+  .status[data-state="error"] .dot, .status[data-state="local"] .dot { background: var(--accent); }
+  .spacer { flex: 1; }
+  .jump { display: flex; gap: 4px; flex-wrap: wrap; }
+  .jump a {
+    font-size: 12px; font-weight: 600; color: var(--indigo); text-decoration: none;
+    padding: 6px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper);
+  }
+  .jump a.is-done { color: var(--muted); text-decoration: line-through; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 12px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+  }
+  .btn:hover { border-color: #cfc6b8; }
+
+  .banner {
+    max-width: 1180px; margin: 16px auto 0; padding: 0 24px; display: none;
+  }
+  .banner div {
+    background: var(--accent-soft); color: #7d2418; border: 1px solid #f2c9c1;
+    padding: 12px 14px; border-radius: 10px; font-size: 14px; line-height: 1.5;
+  }
+
+  /* ---------- Grid of days ---------- */
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 24px 40px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 20px 18px;
+    scroll-margin-top: 80px;
+    transition: opacity .2s;
+  }
+  .card.done { opacity: .62; }
+  .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .day-no { font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); padding: 3px 9px; border-radius: 6px; letter-spacing: .04em; }
+  .day-date { font-size: 17px; font-weight: 700; }
+  .day-wd { font-size: 14px; color: var(--muted); font-weight: 600; }
+  .day-wd.sat { color: #2f5fb3; } .day-wd.sun { color: var(--accent); }
+  .done-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+  .done-toggle input { width: 16px; height: 16px; accent-color: var(--ok); cursor: pointer; }
+
+  .theme input[type="text"] {
+    font-size: 16px; font-weight: 600;
+    border: none; border-bottom: 2px solid var(--line); border-radius: 0;
+    background: transparent; padding: 6px 2px 8px;
+  }
+  .theme input[type="text"]:focus { border-bottom-color: var(--accent); box-shadow: none; }
+
+  .section-title { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .06em; margin: 16px 0 8px; }
+  .meals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 520px) { .meals { grid-template-columns: 1fr; } }
+  .meal { background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .meal-label { font-size: 12px; font-weight: 700; margin: 0 0 6px 2px; }
+  .meal .alt-label { font-size: 11px; color: var(--muted); font-weight: 600; margin: 6px 0 4px 2px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+  label.f { display: block; }
+  label.f span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 4px 2px; }
+
+  input[type="text"], input[type="number"], textarea {
+    width: 100%; font: inherit; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 10px; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  .meal input { background: #fff; }
+  textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+  input:focus, textarea:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(40,58,91,.12); }
+  input::placeholder, textarea::placeholder { color: #b4ada2; }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: #fff4c7; } to { background: inherit; } }
+
+  .cost-row {
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+    font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .cost-row input { width: 130px; text-align: right; font-size: 13px; padding: 6px 8px; }
+
+  /* ---------- Total ---------- */
+  .total {
+    margin-top: 22px; background: var(--indigo); color: #fff; border-radius: var(--radius);
+    padding: 20px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .total .label { font-size: 14px; opacity: .8; font-weight: 600; }
+  .total .amount { font-size: 28px; font-weight: 800; letter-spacing: -.01em; }
+  .total .per { font-size: 13px; opacity: .75; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 24px 36px; }
+
+  @media (max-width: 640px) {
+    header.hero::after { width: 140px; height: 140px; right: -50px; top: -50px; }
+    .toolbar-inner { padding: 10px 16px; gap: 8px; }
+    .spacer { display: none; }
+    .jump { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; }
+    .btn { padding: 6px 10px; font-size: 12px; }
+    .status { width: 100%; }
+    main { padding: 16px 14px 32px; }
+    .card { padding: 16px 14px; }
+  }
+
+  @media print {
+    .toolbar, .banner, .done-toggle, footer { display: none !important; }
+    body { background: #fff; }
+    .card { break-inside: avoid; }
+    header.hero::after { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">OSAKA · KYOTO · NARA · KOBE</div>
+    <h1>오사카 여행 일정표</h1>
+    <p>2026년 12월 1일 – 9일 · 8박 9일 · 링크가 있는 사람 누구나 함께 수정할 수 있어요</p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span class="status" id="status" data-state="loading"><span class="dot"></span><span id="status-text">불러오는 중…</span></span>
+    <div class="spacer"></div>
+    <nav class="jump" id="jump"></nav>
+    <button class="btn" id="csv">CSV 다운로드</button>
+    <button class="btn" onclick="window.print()">인쇄 / PDF</button>
+  </div>
+</div>
+
+<div class="banner" id="banner"><div id="banner-text"></div></div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <section class="total" aria-live="polite">
+    <div>
+      <div class="label">💴 최종 경비 (전체 합계)</div>
+      <div class="per" id="cost-count"></div>
+    </div>
+    <div class="amount" id="total">¥0</div>
+  </section>
+</main>
+<footer>입력하면 자동으로 저장되고, 다른 사람이 고친 내용은 몇 초 안에 반영돼요.</footer>
+
+<script>
+(() => {
+  const START = new Date(2026, 11, 1); // 2026-12-01
+  const DAYS = 9;
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  const POLL_MS = 8000;
+  const SAVE_DELAY = 600;
+  const LOCAL_KEY = "osaka-2026-itinerary-local";
+
+  // 노션 일정표에서 옮겨온 기본값
+  const DEFAULTS = {
+    "d1:theme": "한국에서 일본가는날 / 숙소 까지",
+    "d1:lunch": "희옥 오픈런", "d1:lunch_alt": "오전 11시까지 가야함",
+    "d1:dinner": "마라탕 아무데나", "d1:dinner_alt": "킨류라멘",
+
+    "d2:theme": "천천히 자유스럽게 도톤보리쪽",
+    "d2:place1": "난바 시내거리 탐방",
+    "d2:lunch": "Naniwa Menjiro", "d2:lunch_alt": "타코야끼 / 551 Horai honten",
+    "d2:dinner": "치보 오코노미야끼", "d2:dinner_alt": "시로타야 쿠시카츠",
+    "d2:done": "1",
+
+    "d3:theme": "교토 / 나라",
+    "d3:breakfast": "요시노야 규동",
+    "d3:lunch": "교토역",
+    "d3:dinner": "나라 혹은 오사카",
+    "d3:place1": "아라시야마 / 금각사 / 청수사 / 교토역 / 이나리신사",
+    "d3:place2": "나라 사슴공원 / 와카쿠사야마(미정)",
+    "d3:reserve": "아침 9시 차 빌리기",
+
+    "d4:theme": "고베 / 밥먹기",
+    "d4:lunch": "고베규 특선 코스", "d4:lunch_alt": "차이나타운에서 군것질",
+    "d4:reserve": "11:30",
+    "d4:memo": "고베 코스 1.7만 엔",
+    "d4:cost": "17000",
+
+    "d8:lunch": "Moeyo Mensuke",
+  };
+
+  const MEALS = [
+    ["breakfast", "🍳 아침"],
+    ["lunch", "🍜 점심"],
+    ["dinner", "🍣 저녁"],
+  ];
+
+  let values = { ...DEFAULTS };
+  const pending = {};       // 아직 서버에 안 보낸 변경
+  const inflight = {};      // 보내는 중인 변경
+  let saveTimer = null;
+  let mode = "remote";      // remote | local
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const grid = $("#grid");
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function dayInfo(i) {
+    const d = new Date(START); d.setDate(START.getDate() + i);
+    const wd = d.getDay();
+    return { n: i + 1, label: `${d.getMonth() + 1}월 ${d.getDate()}일`, iso: d.toISOString().slice(0, 10), wd: WD[wd], wdClass: wd === 6 ? "sat" : wd === 0 ? "sun" : "" };
+  }
+
+  function input(key, placeholder, extra = "") {
+    return `<input type="text" data-key="${key}" placeholder="${esc(placeholder)}" ${extra}>`;
+  }
+
+  function renderCard(i) {
+    const d = dayInfo(i), k = (f) => `d${d.n}:${f}`;
+    return `
+    <article class="card" id="day${d.n}" data-day="${d.n}">
+      <div class="card-head">
+        <span class="day-no">DAY ${d.n}</span>
+        <span class="day-date">${d.label}</span>
+        <span class="day-wd ${d.wdClass}">(${d.wd})</span>
+        <label class="done-toggle"><input type="checkbox" data-key="${k("done")}"> 완료</label>
+      </div>
+
+      <div class="theme">${input(k("theme"), "📌 오늘의 지역 / 테마 (예: 난바 · 도톤보리)")}</div>
+
+      <div class="section-title">식사 계획</div>
+      <div class="meals">
+        ${MEALS.map(([f, label]) => `
+          <div class="meal">
+            <div class="meal-label">${label}</div>
+            ${input(k(f), "식당, 메뉴")}
+            <div class="alt-label">상시 · 대안</div>
+            ${input(k(f + "_alt"), "예약 없이 갈 곳")}
+          </div>`).join("")}
+      </div>
+
+      <div class="section-title">가볼 곳</div>
+      <div class="row2">
+        <label class="f"><span>📍 관광지 1</span>${input(k("place1"), "관광지 / 쇼핑 / 체험")}</label>
+        <label class="f"><span>📍 관광지 2</span>${input(k("place2"), "근처에 가볍게 들를 곳")}</label>
+      </div>
+      <label class="f" style="margin-top:8px"><span>🚶 자유일정</span>${input(k("free"), "돌아다니면서 할 것")}</label>
+
+      <div class="section-title">예약 · 참고</div>
+      <div class="row2">
+        <label class="f"><span>⏰ 예약 시간</span>${input(k("reserve"), "예: 19:30 / 예약번호")}</label>
+        <label class="f"><span>📎 참고사항</span>${input(k("notes"), "영업시간, 주의사항")}</label>
+      </div>
+      <label class="f" style="margin-top:8px"><span>📝 메모 / 이동 계획</span>
+        <textarea data-key="${k("memo")}" placeholder="이동 방법, 교통편, 추가 메모"></textarea>
+      </label>
+
+      <div class="cost-row">
+        <span>💴 비용 (엔)</span>
+        <input type="number" inputmode="numeric" min="0" step="100" data-key="${k("cost")}" placeholder="0">
+      </div>
+    </article>`;
+  }
+
+  grid.innerHTML = Array.from({ length: DAYS }, (_, i) => renderCard(i)).join("");
+  $("#jump").innerHTML = Array.from({ length: DAYS }, (_, i) => `<a href="#day${i + 1}" data-jump="${i + 1}">D${i + 1}</a>`).join("");
+
+  const fields = [...document.querySelectorAll("[data-key]")];
+  const byKey = Object.fromEntries(fields.map((el) => [el.dataset.key, el]));
+
+  function setField(el, v, flash) {
+    if (el.type === "checkbox") {
+      const on = v === "1";
+      if (el.checked !== on) { el.checked = on; if (flash) el.closest(".card").classList.add("flash"); }
+    } else if (el.value !== (v ?? "")) {
+      el.value = v ?? "";
+      if (flash) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+    }
+  }
+
+  function applyAll(flash) {
+    const active = document.activeElement;
+    for (const el of fields) {
+      const key = el.dataset.key;
+      if (el === active || key in pending || key in inflight) continue;
+      setField(el, values[key], flash);
+    }
+    refreshDerived();
+  }
+
+  function refreshDerived() {
+    let total = 0, count = 0;
+    for (let n = 1; n <= DAYS; n++) {
+      const c = parseFloat(currentValue(`d${n}:cost`));
+      if (!isNaN(c) && c > 0) { total += c; count++; }
+      const done = currentValue(`d${n}:done`) === "1";
+      $(`#day${n}`).classList.toggle("done", done);
+      $(`[data-jump="${n}"]`).classList.toggle("is-done", done);
+    }
+    $("#total").textContent = "¥" + total.toLocaleString("ja-JP");
+    $("#cost-count").textContent = count ? `${count}일에 비용 입력됨` : "각 날짜 카드 맨 아래 비용 칸에 적으면 합계가 나와요";
+  }
+
+  function currentValue(key) {
+    const el = byKey[key];
+    if (!el) return values[key];
+    return el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value;
+  }
+
+  function setStatus(state, text) {
+    const s = $("#status"); s.dataset.state = state; $("#status-text").textContent = text;
+  }
+  function showBanner(text) {
+    $("#banner").style.display = text ? "block" : "none"; $("#banner-text").textContent = text || "";
+  }
+
+  // ---------- 저장 ----------
+  function onEdit(e) {
+    const el = e.target, key = el.dataset.key;
+    if (!key) return;
+    pending[key] = el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value;
+    values[key] = pending[key];
+    refreshDerived();
+    setStatus("saving", "저장 중…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, el.type === "checkbox" ? 0 : SAVE_DELAY);
+  }
+  grid.addEventListener("input", onEdit);
+  grid.addEventListener("change", (e) => { if (e.target.type === "checkbox") onEdit(e); });
+
+  async function flush() {
+    const changes = { ...pending };
+    if (!Object.keys(changes).length) return;
+    for (const k in changes) { delete pending[k]; inflight[k] = changes[k]; }
+
+    if (mode === "local") {
+      saveLocal();
+      for (const k in changes) delete inflight[k];
+      setStatus("local", "이 브라우저에만 저장됨");
+      return;
+    }
+    try {
+      const res = await fetch("/api/itinerary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changes }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+      for (const k in changes) delete inflight[k];
+      setStatus("saved", "모두 저장됨 · " + timeNow());
+    } catch (err) {
+      // 실패하면 다시 대기열로
+      for (const k in changes) { delete inflight[k]; if (!(k in pending)) pending[k] = changes[k]; }
+      setStatus("error", "저장 실패 · 다시 시도 중");
+      clearTimeout(saveTimer); saveTimer = setTimeout(flush, 4000);
+    }
+  }
+
+  // ---------- 불러오기 ----------
+  async function load(flash) {
+    if (mode === "local") return;
+    try {
+      const res = await fetch("/api/itinerary", { cache: "no-store" });
+      if (res.status === 503) return switchToLocal();
+      if (!res.ok) throw new Error(res.status);
+      const { values: remote } = await res.json();
+      values = { ...DEFAULTS, ...remote };
+      applyAll(flash);
+      if (!Object.keys(pending).length && !Object.keys(inflight).length) setStatus("saved", "최신 상태 · " + timeNow());
+      showBanner("");
+    } catch (err) {
+      if (!flash) applyAll(false);
+      setStatus("error", "서버에 연결할 수 없어요");
+    }
+  }
+
+  function switchToLocal() {
+    mode = "local";
+    try { values = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}") }; } catch { values = { ...DEFAULTS }; }
+    applyAll(false);
+    setStatus("local", "이 브라우저에만 저장됨");
+    showBanner("공유 저장소가 아직 연결되지 않았어요. Vercel 프로젝트의 Storage 탭에서 Upstash Redis를 연결하고 다시 배포하면, 모두가 같은 일정을 함께 수정할 수 있어요. 그 전까지는 이 브라우저에만 저장돼요.");
+  }
+  function saveLocal() {
+    const diff = {};
+    for (const k in values) if (values[k] !== DEFAULTS[k]) diff[k] = values[k];
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(diff)); } catch {}
+  }
+
+  function timeNow() {
+    return new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // ---------- CSV ----------
+  $("#csv").addEventListener("click", () => {
+    const cols = [
+      ["일차", null], ["날짜", null], ["요일", null], ["테마", "theme"],
+      ["아침", "breakfast"], ["아침 상시", "breakfast_alt"], ["점심", "lunch"], ["점심 상시", "lunch_alt"],
+      ["저녁", "dinner"], ["저녁 상시", "dinner_alt"], ["관광지 1", "place1"], ["관광지 2", "place2"],
+      ["자유일정", "free"], ["예약 시간", "reserve"], ["참고사항", "notes"], ["메모", "memo"],
+      ["완료", "done"], ["비용(엔)", "cost"],
+    ];
+    const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+    const rows = [cols.map((c) => q(c[0])).join(",")];
+    for (let i = 0; i < DAYS; i++) {
+      const d = dayInfo(i);
+      rows.push(cols.map(([, f], j) => {
+        if (j === 0) return q(d.n); if (j === 1) return q(d.iso); if (j === 2) return q(d.wd);
+        const v = currentValue(`d${d.n}:${f}`);
+        return q(f === "done" ? (v === "1" ? "O" : "") : v);
+      }).join(","));
+    }
+    const blob = new Blob(["\ufeff" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "osaka-itinerary-2026.csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // 시작
+  applyAll(false);
+  load(false);
+  setInterval(() => { if (!document.hidden) load(true); }, POLL_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(true); });
+  window.addEventListener("beforeunload", (e) => {
+    if (Object.keys(pending).length || Object.keys(inflight).length) { flush(); e.preventDefault(); }
+  });
+})();
+</script>
+</body>
+</html>
