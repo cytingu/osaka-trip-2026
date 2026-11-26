@@ -51,6 +51,7 @@
   .hero .eyebrow { font-size: 13px; letter-spacing: .18em; opacity: .75; font-weight: 600; }
   .hero h1 { margin: 6px 0 8px; font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -.02em; }
   .hero p { margin: 0; opacity: .85; font-size: 15px; }
+  .hero .tip { margin-top: 8px; font-size: 13px; opacity: .75; }
 
   /* ---------- Toolbar ---------- */
   .toolbar {
@@ -161,6 +162,16 @@
   .place-cost .cost-in { margin-top: 0; width: 150px; }
   .breakdown { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 13px; opacity: .85; }
   .breakdown b { font-weight: 700; }
+  .lw { position: relative; }
+  .lw.has-link input[type="text"] { padding-right: 36px; color: #1a4fa0; font-weight: 600; }
+  .lw .nav {
+    display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border-radius: 7px; align-items: center; justify-content: center;
+    text-decoration: none; font-size: 15px; background: #e8f0fe; cursor: pointer;
+  }
+  .lw.has-link .nav { display: inline-flex; }
+  .lw .nav:hover { background: #d2e3fc; }
+  .lw.resolving .nav { opacity: .45; pointer-events: none; }
 
   /* ---------- Total ---------- */
   .total {
@@ -197,6 +208,7 @@
     <div class="eyebrow">OSAKA · KYOTO · NARA · KOBE</div>
     <h1>오사카 여행 일정표</h1>
     <p>2026년 12월 1일 – 9일 · 8박 9일 · 링크가 있는 사람 누구나 함께 수정할 수 있어요</p>
+    <p class="tip">💡 식사·가볼 곳 칸에 구글맵 공유 링크를 붙여넣으면 이름만 남고, 🧭 버튼을 누르면 바로 길안내가 시작돼요</p>
   </div>
 </header>
 
@@ -284,8 +296,15 @@
     return { n: i + 1, label: `${d.getMonth() + 1}월 ${d.getDate()}일`, iso: d.toISOString().slice(0, 10), wd: WD[wd], wdClass: wd === 6 ? "sat" : wd === 0 ? "sun" : "" };
   }
 
+  const LINKABLE = new Set(["breakfast", "breakfast_alt", "lunch", "lunch_alt", "dinner", "dinner_alt", "place1", "place2", "free"]);
+  const MAPS_URL_RE = /https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|(?:www\.|maps\.)?google\.[a-z.]+\/maps)[^\s]*/i;
+  const SAFE_MAP_RE = /^https:\/\/(maps\.app\.goo\.gl\/|goo\.gl\/maps\/|(www\.|maps\.)?google\.[a-z.]+\/maps)/;
+  const isLinkable = (key) => LINKABLE.has(key.split(":")[1]);
+
   function input(key, placeholder, extra = "") {
-    return `<input type="text" data-key="${key}" placeholder="${esc(placeholder)}" ${extra}>`;
+    const el = `<input type="text" data-key="${key}" placeholder="${esc(placeholder)}" ${extra}>`;
+    if (!isLinkable(key)) return el;
+    return `<div class="lw">${el}<a class="nav" data-nav="${key}" target="_blank" rel="noopener" title="구글맵 길찾기" aria-label="구글맵 길찾기">🧭</a></div>`;
   }
 
   function costInput(key) {
@@ -391,7 +410,65 @@
     }
     $("#total").textContent = yen(total);
     $("#breakdown").innerHTML = COST_CATS.map(([f, label]) => `<span>${label} <b>${yen(byCat[f])}</b></span>`).join("");
+    refreshLinks();
   }
+
+  // ---------- 구글맵 길찾기 ----------
+  function refreshLinks() {
+    for (const a of document.querySelectorAll("[data-nav]")) {
+      const href = currentValue(a.dataset.nav + "_map") || "";
+      const ok = SAFE_MAP_RE.test(href);
+      a.closest(".lw").classList.toggle("has-link", ok);
+      if (ok) a.href = href; else a.removeAttribute("href");
+    }
+  }
+
+  function directionsUrl(info, fallback) {
+    if (info && Number.isFinite(info.lat) && Number.isFinite(info.lng))
+      return "https://www.google.com/maps/dir/?api=1&destination=" + info.lat + "," + info.lng;
+    if (info && info.name)
+      return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(info.name);
+    return fallback;
+  }
+
+  function setValue(key, v) {
+    pending[key] = v; values[key] = v;
+    setStatus("saving", "저장 중…");
+    clearTimeout(saveTimer); saveTimer = setTimeout(flush, SAVE_DELAY);
+  }
+
+  async function attachLink(el, text) {
+    const key = el.dataset.key;
+    const url = text.match(MAPS_URL_RE)[0].replace(/[)\]>.,]+$/, "");
+    const fromPaste = text.replace(MAPS_URL_RE, "\n").split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0] || "";
+    const typed = el.value.replace(MAPS_URL_RE, "").trim();
+    el.value = typed || fromPaste;
+    const wrap = el.closest(".lw");
+    wrap.classList.add("resolving");
+    setValue(key, el.value);
+    setValue(key + "_map", url);          // 일단 원래 링크로 연결해 두고
+    refreshDerived();
+    try {
+      const r = await fetch("/api/resolve?url=" + encodeURIComponent(url));
+      const info = r.ok ? await r.json() : null;
+      if (info && !el.value.trim()) el.value = info.name || "📍 지도 위치";
+      setValue(key, el.value);
+      setValue(key + "_map", directionsUrl(info, url));   // 길안내 링크로 교체
+    } catch {
+      if (!el.value.trim()) { el.value = "📍 지도 위치"; setValue(key, el.value); }
+    }
+    wrap.classList.remove("resolving");
+    refreshDerived();
+  }
+
+  grid.addEventListener("paste", (e) => {
+    const el = e.target, key = el.dataset && el.dataset.key;
+    if (!key || !isLinkable(key)) return;
+    const text = (e.clipboardData || window.clipboardData).getData("text") || "";
+    if (!MAPS_URL_RE.test(text)) return;
+    e.preventDefault();
+    attachLink(el, text);
+  });
 
   function currentValue(key) {
     const el = byKey[key];
@@ -410,8 +487,10 @@
   function onEdit(e) {
     const el = e.target, key = el.dataset.key;
     if (!key) return;
+    if (el.type === "text" && isLinkable(key) && MAPS_URL_RE.test(el.value)) { attachLink(el, el.value); return; }
     pending[key] = el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value;
     values[key] = pending[key];
+    if (isLinkable(key) && !el.value.trim() && values[key + "_map"]) { pending[key + "_map"] = ""; values[key + "_map"] = ""; }
     refreshDerived();
     setStatus("saving", "저장 중…");
     clearTimeout(saveTimer);
@@ -492,6 +571,8 @@
       ["관광지 1", "place1"], ["관광지 2", "place2"], ["자유일정", "free"], ["가볼 곳 금액", "place_cost"],
       ["예약 시간", "reserve"], ["참고사항", "notes"], ["메모", "memo"],
       ["완료", "done"], ["기타 금액", "cost"],
+      ["아침 길찾기", "breakfast_map"], ["점심 길찾기", "lunch_map"], ["저녁 길찾기", "dinner_map"],
+      ["관광지 1 길찾기", "place1_map"], ["관광지 2 길찾기", "place2_map"],
     ];
     const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
     const rows = [cols.map((c) => q(c[0])).join(",")];
