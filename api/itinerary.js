@@ -14,6 +14,9 @@ const FIELDS = [
   "reserve", "notes", "memo",
   "done", "cost",
 ];
+const LINKABLE = ["breakfast", "breakfast_alt", "lunch", "lunch_alt", "dinner", "dinner_alt", "place1", "place2", "free"];
+FIELDS.push(...LINKABLE.map((f) => f + "_map"));   // 구글맵 길찾기 링크
+const MAP_URL_RE = /^https:\/\/(maps\.app\.goo\.gl\/|goo\.gl\/maps\/|(www\.|maps\.)?google\.[a-z.]+\/maps)/;
 const FIELD_RE = new RegExp(`^d([1-9]):(${FIELDS.join("|")})$`);
 const MAX_LEN = 2000;
 
@@ -75,6 +78,7 @@ export default async function handler(req, res) {
         if (!FIELD_RE.test(k)) return send(res, 400, { error: `알 수 없는 항목: ${k}` });
         const s = String(v ?? "");
         if (s.length > MAX_LEN) return send(res, 400, { error: `${k} 내용이 너무 길어요` });
+        if (k.endsWith("_map") && s && !MAP_URL_RE.test(s)) return send(res, 400, { error: `${k}: 구글맵 링크가 아니에요` });
         args.push(k, s);
       }
       if (args.length === 0) return send(res, 200, { ok: true });
